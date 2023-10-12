@@ -1,0 +1,4 @@
+uint8 indiID
+---
+uint8 res
+float32 indiData

@@ -1,0 +1,5 @@
+uint8 confType
+uint8 confID
+float32 confData
+---
+uint8 res

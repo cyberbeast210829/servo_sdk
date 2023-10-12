@@ -1,0 +1,4 @@
+string canPort
+uint32 canID
+---
+bool res

@@ -1,0 +1,8 @@
+float32 torque
+uint32 duration
+---
+uint8 res
+int8 temp
+float32 position
+float32 speed
+float32 torque
