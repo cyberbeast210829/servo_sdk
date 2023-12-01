@@ -4,13 +4,15 @@
 #include <SPI.h>
 
 unsigned char Flag_Recv = 0;
-unsigned char len = 0, chose = 0, index = 0;
+unsigned char len = 8, chose = 0, index = 0, i=0, j=0;
 unsigned char buf[8];
-unsigned char stmp[3];
 unsigned char tmp[8];
 bool stringComplete = false;  // whether the string is complete
+uint8_t type;
+float data;
+int32_t duration;
 
-char data[80];
+char outData[80];
 char position_str[10]; // current position returned, in RAD for output shaft
 char speed_str[10]; // current speed returned, in RPM for output shaft
 char torque_str[10]; // current torque returned, in Amper, to convert which to N.m for output shaft, multiply by TORQUE_CONSTANT*GEAR_RATIO 
@@ -65,8 +67,8 @@ void loop()
                 dtostrf(position,1,2,position_str);
                 dtostrf(speed,1,2,speed_str);
                 dtostrf(torque,1,2,torque_str);
-                sprintf(data ,"temp: %d position: %s speed: %s torque: %s",temp , position_str, speed_str, torque_str);
-                outputString = String(data);
+                sprintf(outData ,"temp: %d position: %s speed: %s torque: %s",temp , position_str, speed_str, torque_str);
+                outputString = String(outData);
                 Serial.println(outputString);
                 break;
             
@@ -75,27 +77,26 @@ void loop()
   }
   // print the string when a newline arrives:
   if (stringComplete) {
-    switch(stmp[0])
+    switch(type)
 		{
-			case 5:	MCReqPositionControl(tmp, stmp[1], stmp[2]);break;
+			case 5:	MCReqPositionControl(tmp, data, duration);break;
 											
-			case 4: MCReqSpeedControl(tmp, stmp[1], stmp[2]);break;
+			case 4: MCReqSpeedControl(tmp, data, duration);break;
 														
-			case 3: MCReqTorqueControl(tmp, stmp[1], stmp[2]);break;
+			case 3: MCReqTorqueControl(tmp, data, duration);break;
 								
 			case 2: MCReqStopMotor(tmp);break;
 								
 			case 1: MCReqStartMotor(tmp);break;
 								
-			default: index=0;break;
+			default: j=0;break;
 		}
     // send data:  id , standrad flame, data len = 8, stmp: data buf
-    CAN.sendMsgBuf(0x01, 0, 8, tmp);  
+    CAN.sendMsgBuf(0x01, 0, 8, tmp);
     delay(30);                       // send data per 100ms
     // clear the string:
     inputString = "";
     stringComplete = false;
-    index = 0;
   }
 }
 
@@ -109,16 +110,20 @@ void serialEvent() {
     // get the new byte:
     char inChar = (char)Serial.read();
     if (inChar == ' ') {
-        stmp[index] = inputString.toInt();
+        j++;
+        switch(j)
+        {
+          case 1: type = inputString.toInt();break; 
+          case 2: data = inputString.toFloat();break;                    
+          default: break;
+        }
         inputString = "";
-        index++;
-        break;
     }
     inputString += inChar;
     if (inChar == '\n') {
-      stmp[index] = inputString.toInt();
+      duration = inputString.toInt();
       stringComplete = true;
-      index = 0;
+      j = 0;
     }
     // if the incoming character is a newline, set a flag so the main loop can
     // do something about it:
